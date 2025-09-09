@@ -10,7 +10,12 @@
 👉 [Seg-Barcode Dataset (Roboflow)](https://universe.roboflow.com/tafila-technichal-university/seg-barcode)  
 
 Формат аннотаций: **YOLOv8 (txt)**  
-В датасете есть изображения штрихкодов с разметкой.  
+В датасете есть изображения штрихкодов с разметкой.
+
+## Обучение модели YOLOv8n
+```bash
+yolo detect train model=yolov8n.pt data=data.yaml epochs=52 imgsz=640
+```
 
 ## ⚙️ Установка  
 
