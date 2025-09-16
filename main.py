@@ -1,36 +1,56 @@
-import streamlit as st
 import cv2
-from ultralytics import YOLO
 import numpy as np
-import tempfile
+import matplotlib.pyplot as plt
 
-st.title("📦 Детекция штрихкодов")
-st.write("Загрузи изображение, и обученная YOLOv8 модель найдёт штрихкоды.")
+image_path = input("Введите путь к изображению: ")
 
-# Загружаем модель (замени путь на свой)
-model = YOLO("runs/detect/train/weights/best.pt")
+# Загружаем изображение
+image = cv2.imread(image_path)
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-# Форма для загрузки изображения
-uploaded_file = st.file_uploader("📤 Загрузите фото со штрихкодом", type=["jpg", "jpeg", "png"])
+# Считаем градиенты по x и y
+gradX = cv2.Sobel(gray, ddepth=cv2.CV_32F, dx=1, dy=0, ksize=-1)
+gradY = cv2.Sobel(gray, ddepth=cv2.CV_32F, dx=0, dy=1, ksize=-1)
 
-if uploaded_file is not None:
-    # Сохраняем во временный файл
-    tfile = tempfile.NamedTemporaryFile(delete=False)
-    tfile.write(uploaded_file.read())
+# Вычитаем (штрих-код вытянут по x → он проявится сильнее)
+gradient = cv2.subtract(gradX, gradY)
+gradient = cv2.convertScaleAbs(gradient)
 
-    # Загружаем картинку через OpenCV
-    img = cv2.imread(tfile.name)
+# Размытие и бинаризация
+blurred = cv2.blur(gradient, (9, 9))
+_, thresh = cv2.threshold(blurred, 225, 255, cv2.THRESH_BINARY)
 
-    # Запускаем детекцию
-    results = model(img)
+# Морфологическое закрытие (соединяем полоски штрих-кода в одну область)
+kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (21, 7))
+closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
 
-    # Отрисовываем только рамки
-    for r in results:
-        for box in r.boxes:
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
-            cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+# Немного эрозий и дилатаций (убираем шум)
+closed = cv2.erode(closed, None, iterations=4)
+closed = cv2.dilate(closed, None, iterations=4)
 
-    # Конвертируем в RGB для Streamlit
-    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+# Находим контуры и выбираем самый большой
+cnts, _ = cv2.findContours(closed.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+c = sorted(cnts, key=cv2.contourArea, reverse=True)[0]
 
-    st.image(img_rgb, caption="🔎 Результат детекции штрихкодов", use_column_width=True)
+# Ограничивающий прямоугольник
+rect = cv2.minAreaRect(c)
+box = cv2.boxPoints(rect)
+box = np.int32(box)
+
+# Рисуем на копии изображения
+output = image.copy()
+cv2.drawContours(output, [box], -1, (0, 255, 0), 3)
+
+# Вывод
+plt.figure(figsize=(12,6))
+plt.subplot(1,2,1)
+plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+plt.title("Оригинал")
+plt.axis("off")
+
+plt.subplot(1,2,2)
+plt.imshow(cv2.cvtColor(output, cv2.COLOR_BGR2RGB))
+plt.title("Найденный штрих-код")
+plt.axis("off")
+
+plt.show()
