@@ -1,3 +1,10 @@
+<<<<<<< HEAD
 opencv-python>=4.5.5
 numpy>=1.21.0
 matplotlib>=3.4.3
+=======
+ultralytics
+opencv-python
+streamlit
+numpy
+>>>>>>> 7eb176024cc2151b80db17bb04d2d3564a553b97
