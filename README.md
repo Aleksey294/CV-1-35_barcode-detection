@@ -27,8 +27,8 @@
 
 ```bash
 # Клонируем репозиторий или переходим в папку с проектом
-git clone <ссылка на репозиторий>
-cd <папка с проектом>
+git clone https://github.com/Aleksey294/CV-1-35_barcode-detection
+cd CV-1-35_barcode-detection
 
 # Установка зависимостей
 pip install -r requirements.txt
